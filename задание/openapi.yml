@@ -1001,7 +1001,7 @@ components:
       description: Тип автора
       enum:
         - Organization
-        - User
+        - user
     bidAuthorId:
       type: string
       description: Уникальный идентификатор автора предложения, присвоенный сервером.
@@ -1087,7 +1087,7 @@ components:
         id: 550e8400-e29b-41d4-a716-446655440000
         name: Доставка товаров Алексей
         status: Created
-        authorType: User
+        authorType: user
         authorId: 61a485f0-e29b-41d4-a716-446655440000
         version: 1
         createdAt: 2006-01-02T15:04:05Z07:00

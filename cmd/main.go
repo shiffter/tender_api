@@ -1,20 +1,22 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"context"
+	"log"
+	"tender/internal/app"
 )
 
 func main() {
 
-	http.HandleFunc("/api/ping", pingHandler)
+	ctx := context.Background()
 
-	err := http.ListenAndServe(":8080", nil)
+	a, err := app.NewApp(ctx)
 	if err != nil {
-		fmt.Println("err start srv")
+		log.Fatalf("failed to create app: %s", err.Error())
 	}
-}
 
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong"))
+	err = a.Run()
+	if err != nil {
+		log.Fatalf("failed to create app: %s", err.Error())
+	}
 }
