@@ -17,12 +17,31 @@ type Tender struct {
 	CreatedAt      time.Time
 }
 
-type CreateRequest struct {
+type CreateTenderRequest struct {
 	Name           string
 	Description    string
 	ServiceType    string
 	OrganizationID uuid.UUID
 	Creator        string
+}
+
+type CreateBidsRequest struct {
+	Name        string
+	Description string
+	TenderID    uuid.UUID
+	AuthorType  string
+	AuthorID    uuid.UUID
+}
+
+type CreateBidsResponse struct {
+	ID          uuid.UUID
+	Name        string
+	Status      string
+	Description string
+	AuthorType  string
+	AuthorID    uuid.UUID
+	Version     int
+	CreatedAt   time.Time
 }
 
 type User struct {
@@ -32,4 +51,12 @@ type User struct {
 	LastName  string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type EditTenderParams struct {
+	TenderID    uuid.UUID
+	Username    string
+	Name        string
+	Description string
+	ServiceType string
 }

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	dsnEnvName = "PG_DSN"
+	dsnEnvName = "POSTGRES_CONN"
 )
 
 type pgConfig struct {

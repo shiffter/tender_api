@@ -10,6 +10,7 @@ import (
 	repoModel "tender/internal/repository/model"
 	"tender/internal/repository/model/converter"
 	serviceModel "tender/internal/service/model"
+	"tender/pkg/stderrs"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -43,7 +44,7 @@ func (r *repo) Get(ctx context.Context, tenderID uuid.UUID) (*serviceModel.Tende
 	return converter.ToServiceTenderFromRepo(&tender), nil
 }
 
-func (r *repo) Create(ctx context.Context, params *serviceModel.CreateRequest) (*serviceModel.Tender, error) {
+func (r *repo) Create(ctx context.Context, params *serviceModel.CreateTenderRequest) (*serviceModel.Tender, error) {
 	var (
 		sql = `INSERT INTO 
 			tender(name, description, status, organization_id, creator_username, service_type)
@@ -77,7 +78,7 @@ func (r *repo) OrganizationRightsForUser(ctx context.Context, userName string, o
 
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		return nil, fmt.Errorf("user %s dont have rights from the organization", userName)
+		return nil, stderrs.ErrNotEnoughRights
 	case err != nil:
 		return nil, err
 	}
@@ -154,6 +155,61 @@ func (r *repo) EditStatus(ctx context.Context, status string, tenderID uuid.UUID
 	}
 
 	return converter.ToServiceTenderFromRepo(&updTender), nil
+}
+
+func (r *repo) EditTender(
+	ctx context.Context,
+	params *serviceModel.EditTenderParams,
+	tenderID uuid.UUID) (*serviceModel.Tender, error) {
+
+	repoParams := converter.FromServiceToRepoEditTenderParams(params)
+	sql, args := buildEditTenderQuery(repoParams, tenderID)
+	tender := repoModel.Tender{}
+
+	err := r.db.QueryRow(ctx, sql, args...).
+		Scan(&tender.ID, &tender.Name, &tender.Description,
+			&tender.Status, &tender.Creator, &tender.OrganizationID,
+			&tender.ServiceType, &tender.Version, &tender.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return converter.ToServiceTenderFromRepo(&tender), nil
+}
+
+func buildEditTenderQuery(editParams *repoModel.EditTenderParams, tenderID uuid.UUID) (string, []interface{}) {
+	var (
+		sql     string
+		params  = make([]string, 0, 3)
+		args    []interface{}
+		argsIdx = 1
+	)
+
+	if editParams.Name != "" {
+		params = append(params, fmt.Sprintf("name = $%d", argsIdx))
+		args = append(args, editParams.Name)
+		argsIdx++
+	}
+
+	if editParams.Description != "" {
+		params = append(params, fmt.Sprintf("description = $%d", argsIdx))
+		args = append(args, editParams.Description)
+		argsIdx++
+	}
+
+	if editParams.ServiceType != "" {
+		params = append(params, fmt.Sprintf("service_type = $%d", argsIdx))
+		args = append(args, strings.ToUpper(editParams.ServiceType))
+		argsIdx++
+	}
+
+	sql = fmt.Sprintf("UPDATE tender SET %s WHERE id = $%d "+
+		"RETURNING id, name, description, status, creator_username,"+
+		"organization_id, service_type, version, created_at",
+		strings.Join(params, ","), argsIdx)
+	args = append(args, tenderID)
+
+	return sql, args
 }
 
 func buildListQuery(limit, offset int32, serviceType []string) (string, []interface{}) {

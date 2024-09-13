@@ -9,11 +9,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strings"
 	handler "tender/internal/handler/api/http"
 	apiModel "tender/internal/handler/model"
 	"tender/internal/handler/model/converter"
-	"tender/internal/pkg/stderrs"
 	"tender/internal/service"
+	"tender/pkg/stderrs"
 )
 
 type Handler struct {
@@ -29,8 +30,9 @@ func NewHandler(service service.TenderService) handler.TenderHandler {
 }
 
 func (h *Handler) Ping(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong"))
+	w.Write([]byte("ok"))
 	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +46,8 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+
+	req.ServiceType = strings.ToUpper(req.ServiceType)
 
 	if err := h.validator.Struct(req); err != nil {
 
@@ -74,9 +78,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	var (
 		filter               = apiModel.ListFilter{}
 		availableServiceType = map[string]struct{}{
-			"Delivery":     struct{}{},
-			"Construction": struct{}{},
-			"Manufacture":  struct{}{},
+			"delivery":     struct{}{},
+			"construction": struct{}{},
+			"manufacture":  struct{}{},
 		}
 	)
 
@@ -84,12 +88,15 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	filter.Offset = r.URL.Query().Get("offset")
 	filter.ServiceType = r.URL.Query()["service_type"]
 
-	for _, t := range filter.ServiceType {
-		if _, ok := availableServiceType[t]; !ok {
+	for idx, t := range filter.ServiceType {
+		svType := strings.ToUpper(t)
+		if _, ok := availableServiceType[svType]; !ok {
 			http.Error(w, fmt.Errorf("unsuported service type %s", t).Error(), http.StatusBadRequest)
 
 			return
 		}
+
+		filter.ServiceType[idx] = svType
 	}
 
 	convertReq, err := converter.FromStringToIntListFilter(&filter)
@@ -237,7 +244,7 @@ func (h *Handler) EditStatus(w http.ResponseWriter, r *http.Request) {
 
 	req.TenderID = tenderUUID
 	req.Username = r.URL.Query().Get("username")
-	req.Status = r.URL.Query().Get("status")
+	req.Status = strings.ToUpper(r.URL.Query().Get("status"))
 
 	if err := h.validator.Struct(req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -246,6 +253,58 @@ func (h *Handler) EditStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := h.service.EditStatus(context.Background(), req.TenderID, req.Username, req.Status)
+	if err != nil {
+		switch {
+		case errors.Is(err, stderrs.ErrUserNotFound):
+			w.WriteHeader(http.StatusUnauthorized)
+		case errors.Is(err, stderrs.ErrTenderNotFound):
+			w.WriteHeader(http.StatusNotFound)
+		case errors.Is(err, stderrs.ErrNotEnoughRights):
+			w.WriteHeader(http.StatusForbidden)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		w.Write([]byte(err.Error()))
+
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) EditTender(w http.ResponseWriter, r *http.Request) {
+
+	var (
+		req  = apiModel.EditTenderRequest{}
+		vars = mux.Vars(r)
+	)
+
+	req.TenderID = vars["tenderId"]
+	req.Username = r.URL.Query().Get("username")
+
+	if err := json.NewDecoder(r.Body).Decode(&req.Params); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	req.Params.ServiceType = strings.ToUpper(req.Params.ServiceType)
+
+	if err := h.validator.Struct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		return
+	}
+
+	resp, err := h.service.EditTender(context.Background(), &req)
 	if err != nil {
 		switch {
 		case errors.Is(err, stderrs.ErrUserNotFound):

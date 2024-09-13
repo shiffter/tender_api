@@ -69,13 +69,17 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 		Methods(http.MethodGet)
 	router.HandleFunc("/api/tenders/{tenderId}/status", a.serviceProvider.TenderHandler(ctx).EditStatus).
 		Methods(http.MethodPut)
+	router.HandleFunc("/api/tenders/{tenderId}/edit", a.serviceProvider.TenderHandler(ctx).EditTender).
+		Methods(http.MethodPatch)
 	router.HandleFunc("/api/tenders/my", a.serviceProvider.TenderHandler(ctx).ListForUser).Methods(http.MethodGet)
+
+	router.HandleFunc("/api/bids/new", a.serviceProvider.BidsHandler(ctx).CreateBid).Methods(http.MethodPost)
 
 	a.server = &http.Server{
 		Addr:         a.serviceProvider.HTTPConfig().Address(),
 		Handler:      router,
-		ReadTimeout:  100 * time.Second,
-		WriteTimeout: 100 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	}
 
 	return nil

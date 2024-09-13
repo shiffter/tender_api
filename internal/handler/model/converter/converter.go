@@ -1,11 +1,13 @@
 package converter
 
 import (
+	"github.com/google/uuid"
 	"strconv"
-	"tender/internal/handler/model"
+	apiModel "tender/internal/handler/model"
+	serviceModel "tender/internal/service/model"
 )
 
-func FromStringToIntListFilter(req *model.ListFilter) (*model.IntListFilter, error) {
+func FromStringToIntListFilter(req *apiModel.ListFilter) (*apiModel.IntListFilter, error) {
 	if req.Offset == "" {
 		req.Offset = "0"
 	}
@@ -22,15 +24,14 @@ func FromStringToIntListFilter(req *model.ListFilter) (*model.IntListFilter, err
 		return nil, err
 	}
 
-	return &model.IntListFilter{
+	return &apiModel.IntListFilter{
 		Limit:       int32(l64),
 		Offset:      int32(o64),
 		ServiceType: req.ServiceType,
 	}, nil
-
 }
 
-func FromStringToIntUserListFilter(req *model.UserListFilter) (*model.IntUserListFilter, error) {
+func FromStringToIntUserListFilter(req *apiModel.UserListFilter) (*apiModel.IntUserListFilter, error) {
 	if req.Offset == "" {
 		req.Offset = "0"
 	}
@@ -47,10 +48,24 @@ func FromStringToIntUserListFilter(req *model.UserListFilter) (*model.IntUserLis
 		return nil, err
 	}
 
-	return &model.IntUserListFilter{
+	return &apiModel.IntUserListFilter{
 		Limit:    int32(l64),
 		Offset:   int32(o64),
 		Username: req.Username,
 	}, nil
+}
 
+func FromApiToServiceEditTenderParam(api *apiModel.EditTenderRequest) (*serviceModel.EditTenderParams, error) {
+	tenderUID, err := uuid.Parse(api.TenderID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &serviceModel.EditTenderParams{
+		TenderID:    tenderUID,
+		Username:    api.Username,
+		Name:        api.Params.Name,
+		Description: api.Params.Description,
+		ServiceType: api.Params.ServiceType,
+	}, nil
 }

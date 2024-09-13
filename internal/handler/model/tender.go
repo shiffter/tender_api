@@ -8,7 +8,7 @@ import (
 type CreateRequest struct {
 	Name           string    `json:"name" validate:"required"`
 	Description    string    `json:"description" validate:"required"`
-	ServiceType    string    `json:"service_type" validate:"oneof=Delivery Manufacture Construction"`
+	ServiceType    string    `json:"service_type" validate:"oneof=DELIVERY MANUFACTURE CONSTRUCTION"`
 	OrganizationID uuid.UUID `json:"organization_id" validate:"required"`
 	Creator        string    `json:"creator_username" validate:"required"`
 }
@@ -21,13 +21,25 @@ type StatusRequest struct {
 type EditStatusRequest struct {
 	TenderID uuid.UUID `validate:"required"`
 	Username string    `validate:"required"`
-	Status   string    `validate:"oneof=Created Published Closed"`
+	Status   string    `validate:"oneof=CREATED PUBLISHED CLOSED"`
+}
+
+type EditTenderRequest struct {
+	TenderID string `validate:"required"`
+	Username string `validate:"required"`
+	Params   EditTenderParams
+}
+
+type EditTenderParams struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ServiceType string `json:"service_type" validate:"oneof=DELIVERY MANUFACTURE CONSTRUCTION ''"`
 }
 
 type ListFilter struct {
 	Limit       string
 	Offset      string
-	ServiceType []string `validate:"oneof=Delivery Manufacture Construction"`
+	ServiceType []string `validate:"oneof=DELIVERY MANUFACTURE CONSTRUCTION"`
 }
 
 type UserListFilter struct {

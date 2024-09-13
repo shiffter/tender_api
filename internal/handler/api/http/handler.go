@@ -8,5 +8,10 @@ type TenderHandler interface {
 	Create(w http.ResponseWriter, r *http.Request)
 	Status(w http.ResponseWriter, r *http.Request)
 	EditStatus(w http.ResponseWriter, r *http.Request)
+	EditTender(w http.ResponseWriter, r *http.Request)
 	Ping(w http.ResponseWriter, r *http.Request)
+}
+
+type BidsHandler interface {
+	CreateBid(w http.ResponseWriter, r *http.Request)
 }

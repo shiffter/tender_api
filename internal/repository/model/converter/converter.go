@@ -29,3 +29,11 @@ func ToServiceUserFromRepo(user *repoModel.User) *serviceModel.User {
 		UpdatedAt: user.UpdatedAt,
 	}
 }
+
+func FromServiceToRepoEditTenderParams(params *serviceModel.EditTenderParams) *repoModel.EditTenderParams {
+	return &repoModel.EditTenderParams{
+		Name:        params.Name,
+		Description: params.Description,
+		ServiceType: params.ServiceType,
+	}
+}
